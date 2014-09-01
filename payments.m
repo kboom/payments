@@ -1,3 +1,5 @@
+% http://www.doc.ic.ac.uk/~nd/surprise_96/journal/vol1/hmw/article1.html#se
+% lection
 function [ solution ] = payments( objectives, meetings, options )
 
 memberCount = length(objectives.desiredPayments);
@@ -20,8 +22,6 @@ meansCount = size(meetings(1).assets, 2);
     end
 
     function [ parents ] = selectFittest(oldPopulation)
-        % For now it just takes the best solutions and replicate them to
-        % match the given size
         [output, order] = sort([oldPopulation(:).fitness],'descend'); 
         sortedOldPopulation = oldPopulation(order);
         selectionCount = floor(length(oldPopulation) * options.selectionRatio);
@@ -29,11 +29,53 @@ meansCount = size(meetings(1).assets, 2);
     end
 
     function [ crossoverPopulation ] = crossover(parents)
-        
+        parentCount = length(parents);
+        crossoverPopulation = zeros(options.populationSize);
+        for p = 1 : options.populationSize
+            motherIndex = mod(random(), parentCount) + 1;
+            fatherIndex = mod(random(), parentCount) + 1;
+            for l = 1 : meetingCount
+                if mod(random(), 2) == 0
+                    child.meeting(l) = parents(motherIndex).meeting(l);
+                else
+                    child.meeting(l) = parents(fatherIndex).meeting(l);
+                end                
+            end            
+            crossoverPopulation(p) = child;            
+        end
     end
 
     function [ mutatedPopulation ] = mutate(population)
-        
+        mutatedPopulation = zeros(length(population));
+        for p = 1 : length(population)
+            currentIndividual = population(p);
+            for l = 1 : meetingCount
+                currentMeeting = currentIndividual.meetings(l);
+                for m = 1 : memberCount
+                    for r = 1 : meansCount
+                        meansCharge = currentMeeting.charges(m, r);
+                        if meansCharge > 0
+                            % Pick a random person which can be charged
+                            % with some of this
+                            for z = 1 : options.mutationRetryCount;
+                                randomPersonIndex = mod(random(), memberCount) + 1;
+                                randomAssetIndex = mod(random(), meansCount) + 1;
+                                affordableCharge = meetings(l).assets(randomPersonIndex, randomAssetIndex) - currentMeeting.charges(randomPersonIndex, randomAssetIndex);
+                                if affordableCharge > 0
+                                    % Transfer a part of it
+                                    transferRatio = floor(mod(random(), 100) + 1 + options.transferOffset) / 100;
+                                    transferValue = affordableCharge * transferRatio;
+                                    currentMeeting.charges(m, r) = meansCharge - transferValue;
+                                    currentMeeting.charges(randomPersonIndex, randomAssetIndex) = currentMeeting.charges(randomPersonIndex, randomAssetIndex) - transferValue;
+                                end
+                            end                                                        
+                        end                        
+                    end
+                end                
+                currentIndividual.meetings(l) = currentMeeting;
+            end
+            mutatedPopulation(p) = currentIndividual;
+        end
     end
 
 %% Make some assertions about the data
@@ -42,8 +84,8 @@ for i = 1 : meetingCount
     collectedMoney = 0;
     currentMeeting = meetings(i);
     for j = 1 : size(currentMeeting.assets, 1)
-        for p = 1 : length(currentMeeting.means)
-            collectedMoney = collectedMoney + currentMeeting.assets(j, p);
+        for k = 1 : length(currentMeeting.means)
+            collectedMoney = collectedMoney + currentMeeting.assets(j, k);
         end
     end
     assert (collectedMoney >= currentMeeting.requiredMoney, 'There is not enough money available to pay charge for the meeting ' + i);
@@ -53,8 +95,8 @@ end
 % The most basic implementation of it is just to iterate through the users
 % charging them with some random part of their assets until the required
 % payment is not collected.
-initialPopulation = ones(options.populationCount);
-for i = 1 : options.populationCount
+initialPopulation = ones(options.populationSize);
+for i = 1 : options.populationSize
     for j = 1 : meetingCount
         currentMeeting = meetings(j);
         currentAssets = currentMeeting.assets;
