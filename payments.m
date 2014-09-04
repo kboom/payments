@@ -85,10 +85,11 @@ for i = 1 : meetingCount
     currentMeeting = meetings(i);
     for j = 1 : size(currentMeeting.assets, 1)
         for k = 1 : length(currentMeeting.means)
-            collectedMoney = collectedMoney + currentMeeting.assets(j, k);
+            collectedMoney = collectedMoney + currentMeeting.assets(j,  currentMeeting.means(k));
         end
     end
-    assert (collectedMoney >= currentMeeting.requiredMoney, 'There is not enough money available to pay charge for the meeting ' + i);
+
+    assert (collectedMoney >= currentMeeting.requiredMoney, strcat('There is not enough money available to pay charge for the meeting : ', num2str(i))); 
 end
 
 %% Generate initial population
