@@ -178,14 +178,20 @@ for i = 1 : options.maxIterationCount
     %% Calculate the fitness of each individual in the population
     for j = 1 : length(population)
         currentSolution = population(j).solution;
-        population(j).fitness = calculateFitness(currentSolution);
+        population(j).solution.fitness = calculateFitness(currentSolution);
     end
     
     %% See if there is a solution which is satisfactory
-    [output, order] = sort([population(:).fitness],'descend'); 
-    orderedPopulation = oldPopulation(order);
-    if orderedPopulation(1) >= options.fitnessThreshold
-        solution = population(1);
+    fitnesses = zeros(1, length(population));
+
+    for n = 1 : length(population)
+        fitnesses(n) = population(n).solution.fitness;
+    end
+
+    [output, order] = sort(fitnesses,'descend');
+    orderedPopulation = population(order);
+    if orderedPopulation(1).solution.fitness >= options.fitnessThreshold
+        solution = orderedPopulation(1).solution
         break;
     end
     

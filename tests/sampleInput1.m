@@ -71,4 +71,4 @@ options.populationSize = 16
 options.mutationRetryCount = 10
 options.transferOffset = 2
 options.maxIterationCount = 20;
-options.fitnessThreshold = 4;
+options.fitnessThreshold = 0.06;
