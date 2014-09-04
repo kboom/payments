@@ -12,7 +12,7 @@ meansCount = size(meetings(1).assets, 2);
             totalPayment = 0;
             for p = 1 : meetingCount
                 for x = 1 : meansCount
-                    totalPayment = totalPayment + solution.meeting(j).charges(p, x);
+                    totalPayment = totalPayment + solution.meeting(p).charges(l, x);
                 end
             end
             paymentDifference = totalPayment - objectives.desiredPayments(l);
@@ -177,7 +177,7 @@ for i = 1 : options.maxIterationCount
     
     %% Calculate the fitness of each individual in the population
     for j = 1 : length(population)
-        currentSolution = population(j);
+        currentSolution = population(j).solution;
         population(j).fitness = calculateFitness(currentSolution);
     end
     
