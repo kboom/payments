@@ -22,7 +22,13 @@ meansCount = size(meetings(1).assets, 2);
     end
 
     function [ parents ] = selectFittest(oldPopulation)
-        [output, order] = sort([oldPopulation(:).fitness],'descend'); 
+        fitnesses = zeros(1, length(oldPopulation));
+
+        for m = 1 : length(oldPopulation)
+            fitnesses(m) = oldPopulation(m).solution.fitness;
+        end
+
+        [output, order] = sort(fitnesses,'descend');
         sortedOldPopulation = oldPopulation(order);
         selectionCount = floor(length(oldPopulation) * options.selectionRatio);
         parents = sortedOldPopulation(1:selectionCount);
@@ -32,16 +38,18 @@ meansCount = size(meetings(1).assets, 2);
         parentCount = length(parents);
         crossoverPopulation = zeros(options.populationSize);
         for p = 1 : options.populationSize
-            motherIndex = mod(random(), parentCount) + 1;
-            fatherIndex = mod(random(), parentCount) + 1;
+            motherIndex = randi([1 parentCount],1,1);
+            fatherIndex = randi([1 parentCount],1,1);
+            
+            child = struct([solution", []])
             for l = 1 : meetingCount
-                if mod(random(), 2) == 0
-                    child.meeting(l) = parents(motherIndex).meeting(l);
+                if randi([0 1],1,1) == 0
+                    child.solution.meeting(l) = parents(motherIndex).solution.meeting(l);
                 else
-                    child.meeting(l) = parents(fatherIndex).meeting(l);
+                    child.solution.meeting(l) = parents(fatherIndex).solution.meeting(l);
                 end                
             end            
-            crossoverPopulation(p) = child;            
+            crossoverPopulation(p).solution = child.solution;            
         end
     end
 
@@ -97,15 +105,13 @@ end
 % charging them with some random part of their assets until the required
 % payment is not collected.
 
-initialPopulation = []; %zeros(options.populationSize);
-for i = 1 : options.populationSize
-    
-end
+initialPopulation(options.populationSize).solution = {};
 
 for i = 1 : options.populationSize
     currentSolution = {};
     currentSolution.meeting = meetings;
-    
+    currentSolution.fittness = 0.0;
+
     for j = 1 : meetingCount
         currentMeeting = meetings(j);
         currentSolution.meeting(j).charges = zeros (memberCount, meansCount);
@@ -117,7 +123,7 @@ for i = 1 : options.populationSize
             memberIndex = randi([1 totalMembers],1,1);
             % Pick random payment method from accessible ones
             meansIndex = currentMeeting.means(randi([1 length(currentMeeting.means)],1,1));
-            
+
             % Find out what the contribution should be
             if currentAssets(memberIndex, meansIndex) >= (currentMeeting.requiredMoney - collectedMoney)
                 % He has enough money to finish up the payment by himself
@@ -134,19 +140,15 @@ for i = 1 : options.populationSize
             currentSolution.meeting(j).charges(memberIndex, meansIndex) = currentSolution.meeting(j).charges(memberIndex, meansIndex) + contribution;
             currentAssets(memberIndex, meansIndex) = currentAssets(memberIndex, meansIndex) - contribution;
             collectedMoney = collectedMoney + contribution;            
-        end        
+        end
     end
-    
+
     % Determine fitness
-    %currentSolution.fitness = calculateFitness(currentSolution);
-    %population = selectFittest(population);
+    currentSolution.fitness = calculateFitness(currentSolution);
+
+    % Add solution to array
     initialPopulation(i).solution = currentSolution;
-    %initialPopulation = [initialPopulation, currentSolution];
 end
-
-    initialPopulation
-
-    assert(1,'bleee');
 
 
 %% Run genetic algorithm
