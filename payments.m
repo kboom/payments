@@ -55,11 +55,11 @@ meansCount = size(meetings(1).assets, 2);
     end
 
     function [ mutatedPopulation ] = mutate(population)
-        mutatedPopulation = zeros(length(population));
+        mutatedPopulation(length(population)).solution = {};
         for p = 1 : length(population)
             currentIndividual = population(p);
             for l = 1 : meetingCount
-                currentMeeting = currentIndividual.meetings(l);
+                currentMeeting = currentIndividual.solution.meeting(l);
                 for m = 1 : memberCount
                     for r = 1 : meansCount
                         meansCharge = currentMeeting.charges(m, r);
@@ -67,12 +67,12 @@ meansCount = size(meetings(1).assets, 2);
                             % Pick a random person which can be charged
                             % with some of this
                             for z = 1 : options.mutationRetryCount;
-                                randomPersonIndex = mod(random(), memberCount) + 1;
-                                randomAssetIndex = mod(random(), meansCount) + 1;
+                                randomPersonIndex = randi([1 memberCount],1,1);
+                                randomAssetIndex = randi([1 meansCount],1,1);
                                 affordableCharge = meetings(l).assets(randomPersonIndex, randomAssetIndex) - currentMeeting.charges(randomPersonIndex, randomAssetIndex);
                                 if affordableCharge > 0
                                     % Transfer a part of it
-                                    transferRatio = floor(mod(random(), 100) + 1 + options.transferOffset) / 100;
+                                    transferRatio = floor(randi([1 100],1,1) + options.transferOffset) / 100;
                                     transferValue = affordableCharge * transferRatio;
                                     currentMeeting.charges(m, r) = meansCharge - transferValue;
                                     currentMeeting.charges(randomPersonIndex, randomAssetIndex) = currentMeeting.charges(randomPersonIndex, randomAssetIndex) - transferValue;
@@ -81,7 +81,7 @@ meansCount = size(meetings(1).assets, 2);
                         end                        
                     end
                 end                
-                currentIndividual.meetings(l) = currentMeeting;
+                currentIndividual.solution.meeting(l) = currentMeeting;
             end
             mutatedPopulation(p) = currentIndividual;
         end

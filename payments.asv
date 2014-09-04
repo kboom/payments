@@ -36,25 +36,26 @@ meansCount = size(meetings(1).assets, 2);
 
     function [ crossoverPopulation ] = crossover(parents)
         parentCount = length(parents);
-        crossoverPopulation = zeros(options.populationSize);
+        crossoverPopulation(options.populationSize).solution = {};
         for p = 1 : options.populationSize
             motherIndex = randi([1 parentCount],1,1);
             fatherIndex = randi([1 parentCount],1,1);
-            
-            child = struct([solution", []])
+
+            child = struct();
             for l = 1 : meetingCount
                 if randi([0 1],1,1) == 0
                     child.solution.meeting(l) = parents(motherIndex).solution.meeting(l);
                 else
                     child.solution.meeting(l) = parents(fatherIndex).solution.meeting(l);
                 end                
-            end            
-            crossoverPopulation(p).solution = child.solution;            
+            end
+
+            crossoverPopulation(p) = child;            
         end
     end
 
     function [ mutatedPopulation ] = mutate(population)
-        mutatedPopulation = zeros(length(population));
+        %mutatedPopulation = zeros(length(population));
         for p = 1 : length(population)
             currentIndividual = population(p);
             for l = 1 : meetingCount
