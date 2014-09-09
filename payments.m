@@ -6,7 +6,7 @@ memberCount = length(objectives.desiredPayments);
 meetingCount = length(meetings);
 meansCount = size(meetings(1).assets, 2);
 
-    function [ fitness ] = calculateFitness(solution)
+    function [ fitness ] = calculateFitness(solution, objectives, memberCount, meetingCount, meansCount)
         fitnessPenalty = 0;
         for l = 1 : memberCount
             totalPayment = 0;
@@ -21,7 +21,7 @@ meansCount = size(meetings(1).assets, 2);
         fitness = 1 / sqrt(fitnessPenalty);
     end
 
-    function [ parents ] = selectFittest(oldPopulation)
+    function [ parents ] = selectFittest(oldPopulation, options)
         fitnesses = zeros(1, length(oldPopulation));
 
         for m = 1 : length(oldPopulation)
@@ -34,7 +34,7 @@ meansCount = size(meetings(1).assets, 2);
         parents = sortedOldPopulation(1:selectionCount);
     end
 
-    function [ crossoverPopulation ] = crossover(parents)
+    function [ crossoverPopulation ] = crossover(parents, options, meetingCount)
         parentCount = length(parents);
         crossoverPopulation(options.populationSize).solution = {};
         for p = 1 : options.populationSize
@@ -54,7 +54,7 @@ meansCount = size(meetings(1).assets, 2);
         end
     end
 
-    function [ mutatedPopulation ] = mutate(population)
+    function [ mutatedPopulation ] = mutate(population, meetings, options, memberCount, meetingCount, meansCount)
         mutatedPopulation(length(population)).solution = {};
         for p = 1 : length(population)
             currentIndividual = population(p);
@@ -145,7 +145,7 @@ for i = 1 : options.populationSize
     end
 
     % Determine fitness
-    currentSolution.fitness = calculateFitness(currentSolution);
+    currentSolution.fitness = calculateFitness(currentSolution, objectives, memberCount, meetingCount, meansCount);
 
     % Add solution to array
     initialPopulation(i).solution = currentSolution;
@@ -167,18 +167,18 @@ population = initialPopulation;
 for i = 1 : options.maxIterationCount
     
     %% Select parents from population(t)
-    parents = selectFittest(population);
+    parents = selectFittest(population, options);
     
     %% Perform crossover on parents creating population(t+1)
-    population = crossover(parents);
+    population = crossover(parents, options, meetingCount);
     
     %% Perform mutation of population(t+1)
-    population = mutate(population);
+    population = mutate(population, meetings, options, memberCount, meetingCount, meansCount);
     
     %% Calculate the fitness of each individual in the population
     for j = 1 : length(population)
         currentSolution = population(j).solution;
-        population(j).solution.fitness = calculateFitness(currentSolution);
+        population(j).solution.fitness = calculateFitness(currentSolution, objectives, memberCount, meetingCount, meansCount);
     end
     
     %% See if there is a solution which is satisfactory
