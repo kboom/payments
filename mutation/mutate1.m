@@ -13,14 +13,24 @@ function [ mutatedPopulation ] = mutate1(population, meetings, options, memberCo
                         % with some of this
                         for z = 1 : options.mutationRetryCount;
                             randomPersonIndex = randi([1 memberCount],1,1);
-                            randomAssetIndex = randi([1 meansCount],1,1);
+                            randomAssetIndex = currentMeeting.means(randi([1 length(currentMeeting.means)],1,1));
+                            if r == randomAssetIndex
+                                continue;
+                            end
+                            
                             affordableCharge = meetings(l).assets(randomPersonIndex, randomAssetIndex) - currentMeeting.charges(randomPersonIndex, randomAssetIndex);
                             if affordableCharge > 0
                                 % Transfer a part of it
-                                transferRatio = floor(randi([1 100],1,1) + options.transferOffset) / 100;
+                                transferRatio = randi([1 100],1,1) / 100 - options.transferOffset;
+                                if transferRatio <= 0
+                                    continue;
+                                end
                                 transferValue = affordableCharge * transferRatio;
+                                if meansCharge - transferValue < 0
+                                    transferValue = meansCharge;
+                                end
                                 currentMeeting.charges(m, r) = meansCharge - transferValue;
-                                currentMeeting.charges(randomPersonIndex, randomAssetIndex) = currentMeeting.charges(randomPersonIndex, randomAssetIndex) - transferValue;
+                                currentMeeting.charges(randomPersonIndex, randomAssetIndex) = currentMeeting.charges(randomPersonIndex, randomAssetIndex) + transferValue;
                             end
                         end
                     end

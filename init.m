@@ -4,7 +4,7 @@ function [ initialPopulation ] = init(objectives, meetings, options, memberCount
   for i = 1 : options.populationSize
       currentSolution = {};
       currentSolution.meeting = meetings;
-      currentSolution.fittness = 0.0;
+      currentSolution.fitness = 0.0;
 
       for j = 1 : meetingCount
           currentMeeting = meetings(j);

@@ -1,8 +1,8 @@
 % http://www.doc.ic.ac.uk/~nd/surprise_96/journal/vol1/hmw/article1.html#se
 % lection
 function [ solution ] = payments( objectives, meetings, options )
-    addpath('crossover');
-    addpath('mutation');
+    %addpath('crossover');
+    %addpath('mutation');
 
     memberCount = length(objectives.desiredPayments);
     meetingCount = length(meetings);
@@ -59,6 +59,8 @@ function [ solution ] = payments( objectives, meetings, options )
             solution = orderedPopulation(1).solution
             break;
         end
+        
+        orderedPopulation(1).solution.fitness
     end
 end
 
