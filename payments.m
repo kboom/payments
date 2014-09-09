@@ -1,201 +1,61 @@
 % http://www.doc.ic.ac.uk/~nd/surprise_96/journal/vol1/hmw/article1.html#se
 % lection
 function [ solution ] = payments( objectives, meetings, options )
+    memberCount = length(objectives.desiredPayments);
+    meetingCount = length(meetings);
+    meansCount = size(meetings(1).assets, 2);
 
-memberCount = length(objectives.desiredPayments);
-meetingCount = length(meetings);
-meansCount = size(meetings(1).assets, 2);
+    %% Make some assertions about the data
+    checkData(objectives, meetings, options, memberCount, meetingCount, meansCount);
 
-    function [ fitness ] = calculateFitness(solution, objectives, memberCount, meetingCount, meansCount)
-        fitnessPenalty = 0;
-        for l = 1 : memberCount
-            totalPayment = 0;
-            for p = 1 : meetingCount
-                for x = 1 : meansCount
-                    totalPayment = totalPayment + solution.meeting(p).charges(l, x);
-                end
-            end
-            paymentDifference = totalPayment - objectives.desiredPayments(l);
-            fitnessPenalty = fitnessPenalty + paymentDifference^2;
+    %% Generate initial population
+    % The most basic implementation of it is just to iterate through the users
+    % charging them with some random part of their assets until the required
+    % payment is not collected.
+
+    population = init(objectives, meetings, options, memberCount, meetingCount, meansCount);
+
+    %% Run genetic algorithm
+    % The operations are as follows:
+    %    1. randomly initialize population(t)
+    %    2. determine fitness of population(t)
+    %    3. repeat
+    %        select parents from population(t)
+    %        perform crossover on parents creating population(t+1)
+    %        perform mutation of population(t+1)
+    %        determine fitness of population(t+1)
+    %       until best individual is good enough
+
+    for i = 1 : options.maxIterationCount
+
+        %% Select parents from population(t)
+        parents = selectFittest(population, options);
+
+        %% Perform crossover on parents creating population(t+1)
+        population = crossover(parents, options, meetingCount);
+
+        %% Perform mutation of population(t+1)
+        population = mutate(population, meetings, options, memberCount, meetingCount, meansCount);
+
+        %% Calculate the fitness of each individual in the population
+        for j = 1 : length(population)
+            currentSolution = population(j).solution;
+            population(j).solution.fitness = calculateFitness(currentSolution, objectives, memberCount, meetingCount, meansCount);
         end
-        fitness = 1 / sqrt(fitnessPenalty);
-    end
 
-    function [ parents ] = selectFittest(oldPopulation, options)
-        fitnesses = zeros(1, length(oldPopulation));
+        %% See if there is a solution which is satisfactory
+        fitnesses = zeros(1, length(population));
 
-        for m = 1 : length(oldPopulation)
-            fitnesses(m) = oldPopulation(m).solution.fitness;
+        for n = 1 : length(population)
+            fitnesses(n) = population(n).solution.fitness;
         end
 
         [output, order] = sort(fitnesses,'descend');
-        sortedOldPopulation = oldPopulation(order);
-        selectionCount = floor(length(oldPopulation) * options.selectionRatio);
-        parents = sortedOldPopulation(1:selectionCount);
-    end
-
-    function [ crossoverPopulation ] = crossover(parents, options, meetingCount)
-        parentCount = length(parents);
-        crossoverPopulation(options.populationSize).solution = {};
-        for p = 1 : options.populationSize
-            motherIndex = randi([1 parentCount],1,1);
-            fatherIndex = randi([1 parentCount],1,1);
-
-            child = struct();
-            for l = 1 : meetingCount
-                if randi([0 1],1,1) == 0
-                    child.solution.meeting(l) = parents(motherIndex).solution.meeting(l);
-                else
-                    child.solution.meeting(l) = parents(fatherIndex).solution.meeting(l);
-                end                
-            end
-
-            crossoverPopulation(p) = child;            
+        orderedPopulation = population(order);
+        if orderedPopulation(1).solution.fitness >= options.fitnessThreshold
+            solution = orderedPopulation(1).solution
+            break;
         end
     end
-
-    function [ mutatedPopulation ] = mutate(population, meetings, options, memberCount, meetingCount, meansCount)
-        mutatedPopulation(length(population)).solution = {};
-        for p = 1 : length(population)
-            currentIndividual = population(p);
-            for l = 1 : meetingCount
-                currentMeeting = currentIndividual.solution.meeting(l);
-                for m = 1 : memberCount
-                    for r = 1 : meansCount
-                        meansCharge = currentMeeting.charges(m, r);
-                        if meansCharge > 0
-                            % Pick a random person which can be charged
-                            % with some of this
-                            for z = 1 : options.mutationRetryCount;
-                                randomPersonIndex = randi([1 memberCount],1,1);
-                                randomAssetIndex = randi([1 meansCount],1,1);
-                                affordableCharge = meetings(l).assets(randomPersonIndex, randomAssetIndex) - currentMeeting.charges(randomPersonIndex, randomAssetIndex);
-                                if affordableCharge > 0
-                                    % Transfer a part of it
-                                    transferRatio = floor(randi([1 100],1,1) + options.transferOffset) / 100;
-                                    transferValue = affordableCharge * transferRatio;
-                                    currentMeeting.charges(m, r) = meansCharge - transferValue;
-                                    currentMeeting.charges(randomPersonIndex, randomAssetIndex) = currentMeeting.charges(randomPersonIndex, randomAssetIndex) - transferValue;
-                                end
-                            end                                                        
-                        end                        
-                    end
-                end                
-                currentIndividual.solution.meeting(l) = currentMeeting;
-            end
-            mutatedPopulation(p) = currentIndividual;
-        end
-    end
-
-%% Make some assertions about the data
-for i = 1 : meetingCount
-    % Check if there is enough money in people pockets to pay for the meeting
-    collectedMoney = 0;
-    currentMeeting = meetings(i);
-    for j = 1 : size(currentMeeting.assets, 1)
-        for k = 1 : length(currentMeeting.means)
-            collectedMoney = collectedMoney + currentMeeting.assets(j,  currentMeeting.means(k));
-        end
-    end
-
-    assert (collectedMoney >= currentMeeting.requiredMoney, strcat('There is not enough money available to pay charge for the meeting : ', num2str(i))); 
-end
-
-%% Generate initial population
-% The most basic implementation of it is just to iterate through the users
-% charging them with some random part of their assets until the required
-% payment is not collected.
-
-initialPopulation(options.populationSize).solution = {};
-
-for i = 1 : options.populationSize
-    currentSolution = {};
-    currentSolution.meeting = meetings;
-    currentSolution.fittness = 0.0;
-
-    for j = 1 : meetingCount
-        currentMeeting = meetings(j);
-        currentSolution.meeting(j).charges = zeros (memberCount, meansCount);
-        currentAssets = currentMeeting.assets;
-        totalMembers = size(currentMeeting.assets, 1);
-        collectedMoney = 0;
-        while collectedMoney ~= currentMeeting.requiredMoney
-            % Pick up a random person
-            memberIndex = randi([1 totalMembers],1,1);
-            % Pick random payment method from accessible ones
-            meansIndex = currentMeeting.means(randi([1 length(currentMeeting.means)],1,1));
-
-            % Find out what the contribution should be
-            if currentAssets(memberIndex, meansIndex) >= (currentMeeting.requiredMoney - collectedMoney)
-                % He has enough money to finish up the payment by himself
-                % so take it all
-                contribution = currentMeeting.requiredMoney - collectedMoney;
-            else
-                % He don't have enough money to finish up the payment by
-                % himself so take a random part of what he's got
-                chargeRatio = rand();
-                % Get the contribution
-                contribution = chargeRatio * currentAssets(memberIndex, meansIndex);
-            end
-            
-            currentSolution.meeting(j).charges(memberIndex, meansIndex) = currentSolution.meeting(j).charges(memberIndex, meansIndex) + contribution;
-            currentAssets(memberIndex, meansIndex) = currentAssets(memberIndex, meansIndex) - contribution;
-            collectedMoney = collectedMoney + contribution;            
-        end
-    end
-
-    % Determine fitness
-    currentSolution.fitness = calculateFitness(currentSolution, objectives, memberCount, meetingCount, meansCount);
-
-    % Add solution to array
-    initialPopulation(i).solution = currentSolution;
-end
-
-
-%% Run genetic algorithm
-% The operations are as follows:
-%    1. randomly initialize population(t)
-%    2. determine fitness of population(t)
-%    3. repeat
-%        select parents from population(t)
-%        perform crossover on parents creating population(t+1)
-%        perform mutation of population(t+1)
-%        determine fitness of population(t+1) 
-%       until best individual is good enough 
-    
-population = initialPopulation;
-for i = 1 : options.maxIterationCount
-    
-    %% Select parents from population(t)
-    parents = selectFittest(population, options);
-    
-    %% Perform crossover on parents creating population(t+1)
-    population = crossover(parents, options, meetingCount);
-    
-    %% Perform mutation of population(t+1)
-    population = mutate(population, meetings, options, memberCount, meetingCount, meansCount);
-    
-    %% Calculate the fitness of each individual in the population
-    for j = 1 : length(population)
-        currentSolution = population(j).solution;
-        population(j).solution.fitness = calculateFitness(currentSolution, objectives, memberCount, meetingCount, meansCount);
-    end
-    
-    %% See if there is a solution which is satisfactory
-    fitnesses = zeros(1, length(population));
-
-    for n = 1 : length(population)
-        fitnesses(n) = population(n).solution.fitness;
-    end
-
-    [output, order] = sort(fitnesses,'descend');
-    orderedPopulation = population(order);
-    if orderedPopulation(1).solution.fitness >= options.fitnessThreshold
-        solution = orderedPopulation(1).solution
-        break;
-    end
-    
-end
-
 end
 
