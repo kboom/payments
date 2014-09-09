@@ -1,6 +1,9 @@
 % http://www.doc.ic.ac.uk/~nd/surprise_96/journal/vol1/hmw/article1.html#se
 % lection
 function [ solution ] = payments( objectives, meetings, options )
+    addpath('crossover');
+    addpath('mutation');
+
     memberCount = length(objectives.desiredPayments);
     meetingCount = length(meetings);
     meansCount = size(meetings(1).assets, 2);

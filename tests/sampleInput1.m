@@ -72,3 +72,5 @@ options.mutationRetryCount = 10
 options.transferOffset = 2
 options.maxIterationCount = 20;
 options.fitnessThreshold = 0.06;
+options.crossoverMethod = 'crossover1';
+options.mutateMethod = 'mutate1';
